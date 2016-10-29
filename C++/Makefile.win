@@ -4,8 +4,8 @@
 CPP      = g++.exe
 CC       = gcc.exe
 WINDRES  = windres.exe
-OBJ      = main.o
-LINKOBJ  = main.o
+OBJ      = main.o method.o
+LINKOBJ  = main.o method.o
 LIBS     = -L"H:/Dev-Cpp/MinGW64/lib" -L"H:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc
 INCS     = -I"H:/Dev-Cpp/MinGW64/include" -I"H:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"H:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
 CXXINCS  = -I"H:/Dev-Cpp/MinGW64/include" -I"H:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"H:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"H:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
@@ -26,3 +26,6 @@ $(BIN): $(OBJ)
 
 main.o: main.cpp
 	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)
+
+method.o: method.cpp
+	$(CPP) -c method.cpp -o method.o $(CXXFLAGS)
