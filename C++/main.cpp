@@ -1,95 +1,31 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map> 
-#include <string>
-#include <sstream>
-#include <vector>
-#include <cmath>
 #include "method.h"
 
 
 using namespace std;
 
+#define NUMOFDOCID 4
+//#define CHUNKSIZE 65536 
+//#define METADATASIZE 128
+#define CHUNKSIZE 56 
+#define METADATASIZE 12
+#define BUFFERSIZE NUMOFDOCID*4
+
 #ifndef TEST
-#define TEST 1
+#define TEST 0
 
 
 #if TEST!=1
 int main () {
-	  
-	  // ascii mode lexicon
-	  vector<int> lexicon;					// <termID, file_offset>
-	  
-	  // used for binary mode lexicon
-	  unordered_map<string, int> term_ID;	// <term, termID>
-	  vector<string> ID_term;  				// <termID, term>
-	  
-	  int ID=0, pos_offset=0, last_pos=0, docID=0, last_docID=0;
-	  string line, word="";
-	  ifstream readfile ("G:\\A2\\posting_b");
-	  ofstream writefile ("test.bin", ios::binary);
-	  if (readfile.is_open())
-	  {	
-		cout<<"opened"<<endl;
-		int i=0;
-		while ( getline (readfile,line) )
-		{	
-			if(i++>5000000)
-				break;
-			vector<string> temp;	// WORD, DOCID, DOCID, DOCID...
-			stringstream ss(line);
-			string item;
-			while (getline(ss, item, '\ ')) 
-			{
-				temp.push_back(item);
-			}			
-			docID = stoi(temp[1]);
-			if(temp[0]==word && docID==last_docID)
-				;
-			else
-			{
-				if(temp[0]!=word)		// encounter a new word
-				{	
-					word=temp[0];
-					// add into lexicon
-					term_ID[word]=ID++;
-					ID_term.push_back(word);
-					lexicon.push_back(pos_offset);  
-					last_pos=writefile.tellp(); 
-				} 	
-				last_docID=docID;
-				// write into file
-				writefile.seekp(0, ios::end);
-				writefile.write((char*)(&docID), sizeof(docID));
-				// accumulate pos
-				pos_offset=writefile.tellp() - last_pos; // store difference of pos to compress. In binary mode each int occupies 4 bytes	   	
-			}
-			if(i>=100000 && i==(i/100000)*100000)
-				cout<<i<<" lines finishes "<<endl;		
-		}
-		writefile.close();
-		readfile.close();
-	  }
-	  else 
-			cout << "Unable to open file"; 
-	 
-		
-	//  read_b_file(""); // for checking purpose
-	  setup_lexicon(lexicon, ID_term);
-	  return 0;
-}
-
-#else
-int main()
-{
 	cout<<"this is test mode!"<<endl;
 	ifstream readfile ("beta_data",ios::binary);
-	ofstream writefile ("test.bin", ios::binary);
+	ofstream writefile ("test.bin", ios::binary); // | ios::app
 	
-	int ID=0, pos_offset=0, last_pos=0, docID=0, last_docID=0, freq=0, count_docID=0;
+	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=0, freq=0, count_docID=0;
+	int chunk_size=0, num_block=0, buffer_size=0;
 	string line, word="";
-	int block_size=65536;
-	vector<int> chunk, chunk_freq;
+//	int chunk_size=65536;
+	vector<int> chunk_id, chunk_freq, last_docID, size_of_blocks;
+	char *chunk=nullptr;
 	if (readfile.is_open())
   	{
   		cout<<"opened"<<endl;
@@ -115,66 +51,95 @@ int main()
 //				lexicon.push_back(pos_offset);  
 //				last_pos=writefile.tellp(); 
 			} 				
-			else if(docID==last_docID)
+			else if(docID==last_one)	// should remove duplicates by linux sort
 			{
 				continue;					
 			}	
-			last_docID=docID;
-			chunk.push_back(docID);
+			last_one=docID;
+//			int last=block.empty() ? 0:block.back(); // it's ok to use back() like that
+			chunk_id.push_back(docID);
 			chunk_freq.push_back(freq);
 			count_docID++;
-			if(chunk.size()==20)
-			{
-				// write into file
-				// writefile.seekp(0, ios::end);	// make pointer pointing to the end of file
-				int last=chunk[0];
-				int skip_len=sqrt(count_docID);
-				writefile.write((char*)(&last), sizeof(last));
-				for(int i=1;i<chunk.size();i++)
-				{			
-					int ID=chunk[i];	
-					int gap=ID;	
-					writefile.write((char*)(&gap), sizeof(gap));
-					last=ID;
-				}
-				chunk.clear();
+			if(!chunk_id.empty() && chunk_id.size()%NUMOFDOCID==0)
+			{	
+				char *buffer=(char*)&chunk_id[0];
+				buffer_size=BUFFERSIZE; 
+				last_docID.push_back(chunk_id.back()); // last docID of each block
+				size_of_blocks.push_back(buffer_size);	// size of each block
+				num_block++;
+//				writefile.write(buffer, buffer_size);	
+
+				// write chunk into file
+				int mdsize=(num_block*2+2)*4;
+				int curr_size=chunk_id.size()*4+mdsize;
+				if(curr_size>CHUNKSIZE)
+				{
+					/* -----------------add this information------------------------------
+					TotalBlocks LastDocId1 .. LastDocIdn SizeOfBlock1 .. SizeOfBlock2 DocId1 DocId2 .. DocIdn Freq1 .. Freqn
+	 
+					Taking example from your last answer
+					Actual docIDs:      [ 2  4  7  9 ]  [ 13  15  21  23 ]  [ 28  31  36  43 ] 
+					
+					Then we store like below
+					3 9 23 43 4 4 4 2 2 3 9 4 2 6 23 5 3 5 43 ...(frequencies afterwards)
+					---------------------------------------------------------------------*/
+					
+					// add metadata into chunk or write metadata into file
+					vector<int> meta_data((mdsize-8)/4);
+					meta_data[0]= meta_data.size()-1;
+					meta_data[1]=num_block-1;
+					for(int i=0;i<num_block-1;i++)
+					{
+						meta_data[i+2]=last_docID[i];
+						meta_data[i+1+num_block]=size_of_blocks[i];						 
+					}
+//					for(auto c:meta_data)
+//						cout<<c<<" df "<<mdsize<<" "<<num_block<<endl;
+//						
+//					for(auto c:last_docID)
+//						cout<<c<<" ";	cout<<endl;
+//					for(auto c:size_of_blocks)
+//						cout<<c<<" ";	cout<<endl;
+					// write metadata into file
+					writefile.write((char*)&meta_data[0],meta_data.size()*4);
+					// write chunk into file
+					writefile.write((char*)&chunk_id[0], (chunk_id.size()-4)*4); // fill up to 64kb?
+					
+
+										
+//					writefile.write((char*)&meta_data[0], mdsize);					
+					chunk_id.erase(chunk_id.begin(), chunk_id.end()-NUMOFDOCID);
+					last_docID.clear();
+					size_of_blocks.clear();
+					num_block=0;
+					
+					last_docID.push_back(chunk_id.back()); // last docID of each block
+					size_of_blocks.push_back(buffer_size);	// size of each block
+					num_block++;
+					
+				}  
 			}				
-			
 			// accumulate pos
-			pos_offset=writefile.tellp() - last_pos; // store difference of pos to compress. In binary mode each int occupies 4 bytes	   		
+			pos_offset=writefile.tellp() - last_pos; // store difference of pos to compress. In binary mode each int occupies 4 bytes	 
+//			
 		}
 		readfile.close();
 	}	
   	else
-  		cout<<"not"<<endl;
+  		cout<<"file not opened"<<endl;
 	writefile.close();
-//	read_b_file("test.bin");
-//	foo(3);
-	streampos size;
-  	int * memblock;
-//
-  ifstream file ("test.bin", ios::in|ios::binary|ios::ate); // ios::ate	set the initial position at the end of the file.
-  															// otherwise the initial position is the beginning of the file.
-  if (file.is_open())
-  {
-    size = file.tellg();		// size of the whole file
-    memblock = new int [size];
-    file.seekg (0, ios::beg);	// remember that we opened the file with this pointer at the end
-    file.read ((char*)memblock, size);
-    file.close();
-
-    cout << "the entire file content is in memory\n";
-	for(int i=0;i*4<size;i++)
-		cout << memblock[i] << " "<<i<<endl;
-    delete[] memblock;
-    return 1;	// succeed return 1
-  }
-  else 
-  {
-	cout << "Unable to open file";
-//	return -1;	// fail return -1
-  }
+	
+	read_b_file("test.bin");
+	
 	return 0;
+}
+
+#else
+int main()
+{
+	read_b_file("test.bin");
+	
+	return 0;	
 }
 
 #endif

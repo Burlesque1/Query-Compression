@@ -4,11 +4,8 @@ import warcat.model
 from datetime import datetime
 start=datetime.now()
 docID=0
-# warc = warcat.model.WARC()
-# print(type(warc))
-# warc_file_obj=warc.open('0.gz') 
-# print(datetime.now()-start)
-# print(warcat.model.field.Fields())
+f= open("test.bin",'rb') 
+print(f.read())
 os.system('sort b.txt /+1 /C[ASE_SENSITIVE]')
 # record, is_end = warc.read_record(warc_file_obj)	# skip the first BlockWithPayload			
 # while is_end:

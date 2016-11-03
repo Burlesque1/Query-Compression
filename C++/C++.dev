@@ -71,7 +71,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit3]
-FileName=method.hpp
+FileName=method.h
 CompileCpp=1
 Folder=
 Compile=1

@@ -1,6 +1,11 @@
 #include <iostream>
+#include <fstream>
+#include <unordered_map> 
 #include <string>
+#include <sstream>
 #include <vector>
+#include <cmath>
+#include <string.h>
 using namespace std;
 
 
