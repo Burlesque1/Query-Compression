@@ -22,7 +22,7 @@ int main () {
 	
 	string line, word="";
 	
-	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=0, freq=0, count=0;
+	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=0, freq=0, count=0, offset=0;
 	vector<int> chunk_doc, chunk_freq, first_docID, size_of_blocks;
 	
 	int num_chunk=0, num_block=0, num_doc=0, chunk_size=0, buffer_size=0;
@@ -69,8 +69,11 @@ int main () {
 			{
 				num_doc++;
 				count++;
-				if(chunk_doc.size()%NUMOFDOCID==1)
+				if(chunk_doc.size()%NUMOFDOCID==0)
+				{
 					chunk_doc.push_back(docID);
+					cout<<docID<<" "<<chunk_doc.size()<<endl;
+				}
 				else
 					chunk_doc.push_back(docID-last_one);
 				chunk_freq.push_back(freq);			
@@ -79,6 +82,9 @@ int main () {
 			
 			if(!chunk_doc.empty() && chunk_doc.size()%NUMOFDOCID==0)	// one more block full
 			{	
+//				for(auto c:chunk_doc)
+//				cout<<c<<" ";
+//				cout<<endl;
 				first_docID.push_back(*(chunk_doc.begin()+num_block*4)); // first docID of each block
 				size_of_blocks.push_back(16);	// size of each block
 				num_block++;
@@ -104,7 +110,7 @@ int main () {
 					meta_data[1]=num_block-1;
 					for(int i=0;i<num_block-1;i++)
 					{
-						meta_data[i+2]=first_docID[i];
+						meta_data[i+2]=first_docID[i];		// may use offset here at expanse of keeping all the first docs in memory
 						meta_data[i+2+num_block-1]=size_of_blocks[i];						 
 					}
 
@@ -122,8 +128,8 @@ int main () {
 					size_of_blocks.clear();
 					num_block=0;
 					
-					first_docID.push_back(chunk_doc.back()); // last docID of each block
-					size_of_blocks.push_back(buffer_size);	// size of each block
+					first_docID.push_back(chunk_doc.front()); // last docID of each block
+					size_of_blocks.push_back(16);	// size of each block
 					num_block++;
 				}  
 			}	
@@ -144,10 +150,12 @@ int main () {
 	for(int i=0;i<num_block;i++)
 	{
 		meta_data[i+2]=first_docID[i];
-		meta_data[i+2+num_block]=size_of_blocks[i];						 
+		meta_data[i+2+num_block]=size_of_blocks[i];		
+		cout<<first_docID[i]<<" "<<size_of_blocks[i]<<endl;				 
 	}
 
-
+	for(auto m:meta_data)
+		cout<<m<<" ";
 	// pad something to chunk
 										
 	writefile.write((char*)&meta_data[0],meta_data.size()*4);		// write metadata into file
