@@ -23,7 +23,7 @@ int main () {
 	string line, word="";
 	
 	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=0, freq=0, count=0;
-	vector<int> chunk_doc, chunk_freq, last_docID, size_of_blocks;
+	vector<int> chunk_doc, chunk_freq, first_docID, size_of_blocks;
 	
 	int num_chunk=0, num_block=0, num_doc=0, chunk_size=0, buffer_size=0;
 	vector<vector<int>> lexicon;
@@ -48,28 +48,39 @@ int main () {
 			{				
 				if(word!="")
 				{
-					vector<int> offset={num_chunk, num_block, num_doc-1, count};
-					lexicon.push_back(offset);
+					vector<int> pos={num_chunk, num_block, num_doc-1, count};	// -1 previous pos
+					lexicon.push_back(pos);
 					count=0;
 				}
 				word=temp[0];
-				termid.push_back(word);						
+				termid.push_back(word);	
+				
+				last_one=docID;			// record doc num in current block
+				num_doc++;
+				count++;
+				chunk_doc.push_back(docID);		
+				chunk_freq.push_back(freq);						
 			} 				
 			else if(docID==last_one)	// should remove duplicates by linux sort
 			{
 				continue;					
 			}	
-			last_one=docID;			// record doc num in current block
-			num_doc++;
-			count++;
-			chunk_doc.push_back(docID);
-			chunk_freq.push_back(freq);
+			else
+			{
+				num_doc++;
+				count++;
+				if(chunk_doc.size()%NUMOFDOCID==1)
+					chunk_doc.push_back(docID);
+				else
+					chunk_doc.push_back(docID-last_one);
+				chunk_freq.push_back(freq);			
+				last_one=docID;			// record doc num in current block
+			}
+			
 			if(!chunk_doc.empty() && chunk_doc.size()%NUMOFDOCID==0)	// one more block full
 			{	
-				char *buffer=(char*)&chunk_doc[0];
-				buffer_size=BUFFERSIZE; 
-				last_docID.push_back(chunk_doc.back()); // last docID of each block
-				size_of_blocks.push_back(buffer_size);	// size of each block
+				first_docID.push_back(*(chunk_doc.begin()+num_block*4)); // first docID of each block
+				size_of_blocks.push_back(16);	// size of each block
 				num_block++;
 				num_doc=0;
 
@@ -93,7 +104,7 @@ int main () {
 					meta_data[1]=num_block-1;
 					for(int i=0;i<num_block-1;i++)
 					{
-						meta_data[i+2]=last_docID[i];
+						meta_data[i+2]=first_docID[i];
 						meta_data[i+2+num_block-1]=size_of_blocks[i];						 
 					}
 
@@ -107,11 +118,11 @@ int main () {
 					
 					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);
 					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);
-					last_docID.clear();
+					first_docID.clear();
 					size_of_blocks.clear();
 					num_block=0;
 					
-					last_docID.push_back(chunk_doc.back()); // last docID of each block
+					first_docID.push_back(chunk_doc.back()); // last docID of each block
 					size_of_blocks.push_back(buffer_size);	// size of each block
 					num_block++;
 				}  
@@ -121,6 +132,10 @@ int main () {
 	}	
   	else
   		cout<<"file not opened"<<endl;
+  		
+  	vector<int> pos={num_chunk, num_block, num_doc-1, count};	// -1 previous pos
+	lexicon.push_back(pos);
+	
 	int mdsize=(num_block*2+2)*4;
   	cout<<num_block<<" "<<mdsize<<endl;
 	vector<int> meta_data(mdsize/4);
@@ -128,7 +143,7 @@ int main () {
 	meta_data[1]= num_block;
 	for(int i=0;i<num_block;i++)
 	{
-		meta_data[i+2]=last_docID[i];
+		meta_data[i+2]=first_docID[i];
 		meta_data[i+2+num_block]=size_of_blocks[i];						 
 	}
 
@@ -187,8 +202,7 @@ int main()
 	file.close();
 	cout<<"\nlexicon loading finish!"<<endl;
 	
-	int i=1;
-	while(i++<1)
+	while(0)
 	{
 		cout<<"\n\nplease enter your query words:\n"<<endl;
 		string query;
