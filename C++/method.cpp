@@ -96,25 +96,117 @@ int read_lexicon(string filename1, string filename2)
 
 int output_lexicon(vector<string> &termid, vector<vector<int>> &lexicon){
 	ofstream termid_f ("termid");
-	ofstream  lexicon_f("lexicon.bin", ios::binary);
-	ofstream  lexicon_ft("lexicon");
+	ofstream lexicon_f("lexicon.bin", ios::binary);
+	ofstream lexicon_ft("lexicon");
 	for(int i=0;i<termid.size();i++)
 	{
 		termid_f<<termid[i]<<endl; 
-		cout<<"  "<<termid[i]<<endl;
+		// cout<<"  "<<termid[i]<<endl;
 	}
-	for(auto l:lexicon){
+	for(auto l:lexicon)
+	{
 		for(auto ll:l)
 			lexicon_ft<<ll<<" ";
 		lexicon_ft<<endl;
-	}
-	for(auto l:lexicon)
 		lexicon_f.write((char*)&l[0],l.size()*4);
+	}
 	termid_f.close();
 	lexicon_f.close();
 	lexicon_ft.close();
 	return 0;
 }
+
+int *load_lexicon(unordered_map<string, int> &termid)
+{
+	ifstream readfile ("termid");
+	// unordered_map<string, int> termid;
+	if(readfile.is_open())
+	{
+		cout<<"lexicon loading..."<<endl;
+//		cout<<"termid file opened"<<endl;
+		string line;
+		int num=0;
+		while(getline(readfile, line))
+		{
+			termid[line]=num++;
+			cout<<line<<" "<<termid[line]+1<<endl;
+		}			
+	}
+	else
+	{
+		cout<<"fail to open file"<<endl;
+	}
+	readfile.close();
+	
+	ifstream file("lexicon.bin", ios::binary|ios::ate);
+	streampos size=file.tellg();
+	
+	int *lxcon=new int[size/4];
+	file.seekg (0, ios::beg);
+	file.read ((char*)lxcon, size);
+	file.close();
+	cout<<"lexicon loading finish!"<<endl;
+	cout<<"lexicon size="<<size<<endl;
+	for(int i=0;i<28;i++)
+		cout<<lxcon[i]<<" ";
+	cout<<endl;
+	return lxcon;
+}
+
+void do_query(ifstream &datafile, int *lxcon, int offset)
+{//-------------------------------------------------------------------------------------------------------------
+	int nth_chunk=lxcon[0+offset*4], nth_block=lxcon[1+offset*4], nth_doc=lxcon[2+offset*4], count=lxcon[3+offset*4];
+	streampos start_cpos=nth_chunk*CHUNKSIZE;
+	cout<<offset<<" a  "<<" "<<nth_chunk<<" "<<nth_block<<" "<<nth_doc<<" "<<count<<endl;
+		
+	datafile.seekg (start_cpos, ios::beg);
+	
+	//---------calculate meta data-----------
+	int *mdsize=new int;						// mdata size
+	datafile.read((char*)mdsize, 4);
+	int *mdata=new int[*mdsize];				// mdata
+	datafile.read((char*)mdata, *mdsize*4);
+	int num_blocks=mdata[0];	
+	int size_sum=0, nth_size=mdata[num_blocks+nth_block+1];
+	// for(int i=num_blocks+1;i<=num_blocks+nth_block;i++)
+		// size_sum+=mdata[i];
+	//----------------------------------------
+	// for(int i=0;i<*mdsize;i++)
+		// cout<<mdata[i]<<" ";
+	// cout<<endl;
+	// cout<<nth_size<<endl;
+	// int *block=new int[nth_size/4];		// what if compressed??
+	// datafile.seekg (size_sum, ios::cur);
+	// datafile.read((char*)block, nth_size);
+	// cout<<nth_size<<" "<<nth_chunk<<" "<<nth_block<<" "<<nth_doc<<" "<<" should be   "<<"  "<<block[nth_doc]<<endl;
+	
+	// for(int i=0;i<nth_size/4;i++)
+		// cout<<block[i]<<" ";
+	// cout<<"  "<<endl;
+}
+
+
+void input_quert(vector<string> &words)
+{
+	while(0)
+	{
+		cout<<"\n\nplease enter your query words:\n"<<endl;
+		string query;
+		getline(cin, query, '\n');
+		cout<<query<<endl;
+		stringstream ss(query);
+		string keyword;
+		vector<string> words;
+		while(getline(ss, keyword, ' '))
+			words.push_back((keyword));
+		cout<<"\nThe query words are:\n";
+		for(auto w:words)
+			cout<<w<<" ";
+		cout<<endl;
+	}
+}
+
+
 int foo(int a)
 {
 	cout<<"dfdf "<<a<<endl;
