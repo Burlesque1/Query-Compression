@@ -109,18 +109,14 @@ void open_list(string word, unordered_map<string, int> &termid, vector<int> &lxc
 	//---------calculate meta data-----------
 	int *mdsize=new int;						// mdata size
 	datafile.read((char*)mdsize, 4);
-	// cout<<*mdsize<<endl;
 	int *mdata=new int[*mdsize];				// mdata
 	datafile.read((char*)mdata, *mdsize*4);
-//	 for(int i=0;i<*mdsize;i++)
-//		 cout<<mdata[i]<<" "<<i<<endl;
 	vmdata.push_back(mdata);
 	
 	int num_blocks=mdata[0];	
 	int size_sum=0;
 	for(int i=num_blocks+1;i<=num_blocks+nth_block;i++)
 	{
-//		 cout<<mdata[i]<<" "<<i<<endl;
 		size_sum+=mdata[i];
 	}
 	datafile.seekg (size_sum, ios::cur);
@@ -168,13 +164,10 @@ void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vec
 	int *block=new int[2*NUMOFDOCID];
 	int num_blocks=vmdata[min_pos][0];
 	file_pointer[min_pos].read((char*)block, vmdata[min_pos][1+num_blocks+(nth_block++)]);
-	cout<<vmdata[min_pos][1+num_blocks+(nth_block++)]<<endl;
 		
 	// decompress
 	//-----------
 	
-	
-	bool f=false;
 	queue<int> rec_id;		
 	int ini_pos=nth_doc, remain_num=count;
 	while(remain_num>0){
@@ -242,10 +235,22 @@ void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vec
 
 bool match_id(ifstream* fp, int *vmdata, vector<int> &fpos, int &freq, int targetid)
 {
-	int i=fpos[2]+1;
-	for(int size_sum=0;i<=NUMOFBLOCK;i++)
+	int nth_block=fpos[1], nth_doc=fpos[2], count=fpos[3];
+	if(nth_doc+count<=NUMOFDOCID){
+		int *block=new int[NUMOFDOCID*2];
+		fp.read((char*)block, vmdata[1+nth_block]);
+		for(int ini_pos=nth_doc;ini_pos<NUMOFDOCID;ini_pos++)
+			if(block[i]==targetid)
+				return true;
+		return false;
+	}
+	else{
+		
+	}
+	for(int size_sum=0;nth_block<NUMOFBLOCK;nth_block++)
 	{
-		if(targetid<=vmdata[i])
+		int last_docid=vmdata[NUMOFBLOCK+nth_block];
+		if(targetid<=last_docid)
 		{
 			fp->seekg(size_sum, ios::cur);
 			int *block=new int[NUMOFDOCID*2]; // [doc][freq]
@@ -253,14 +258,14 @@ bool match_id(ifstream* fp, int *vmdata, vector<int> &fpos, int &freq, int targe
 			int nextid=nextGEQ(block, targetid);
 			if(nextid==targetid)
 			{
-				freq=block[i+NUMOFDOCID];
+				freq=block[nth_block+NUMOFDOCID];
 				return true;
 			}
 			break;
 		}
-		size_sum+=vmdata[i+NUMOFBLOCK];
+		size_sum+=vmdata[nth_block+NUMOFBLOCK];
 	}
-	if(i<=NUMOFBLOCK)
+	if(nth_block<=NUMOFBLOCK)
 		return false;
 	else
 	{

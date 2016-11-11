@@ -6,7 +6,6 @@
 #define QUERY 1
 #if !QUERY
 int main () {
-	cout<<NUMOFMETADATA*4<<" "<<CHUNKSIZE<<endl;
 //	ifstream readfile ("beta_data");
 //	ofstream writefile ("test.bin", ios::binary); // | ios::app
 	string path=PATH;
@@ -247,6 +246,13 @@ int main()
 #endif
 #else
 int main(){
+	
+	clock_t qt=clock();
+	
+	for(long i=0;i<2000000000;i++)
+		;
+	float a=float(clock()-qt)/1000;
+	cout<<"20000000 using "<<float(clock()-qt)/1000<<"s "<<a<<endl;
 	string path=PATH;
 	ifstream f(path+"50_postings");
 	if(f.is_open()){
