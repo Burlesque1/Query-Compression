@@ -2,16 +2,16 @@
 
 #ifndef TEST
 #define TEST 0
-#define QUERY 0
-
 #if !TEST
+#define QUERY 1
 #if !QUERY
 int main () {
 	cout<<NUMOFMETADATA*4<<" "<<CHUNKSIZE<<endl;
 //	ifstream readfile ("beta_data");
 //	ofstream writefile ("test.bin", ios::binary); // | ios::app
-	ifstream readfile ("F:\\data\\50_postings");
-	ofstream writefile ("F:\\data\\inverted-index.bin", ios::binary); // | ios::app
+	string path=PATH;
+	ifstream readfile (path+"50_postings");
+	ofstream writefile (path+"inverted-index.bin", ios::binary); // | ios::app
 	
 	string line, word="";
 	
@@ -68,6 +68,7 @@ int main () {
 				{
 //					chunk_doc.push_back(docID);
 					block_doc.push(docID);
+//					cout<<docID<<" "<<chunk_doc.size()<<endl;
 				}
 				else
 				{
@@ -92,13 +93,27 @@ int main () {
 					curr_chunk.push_back(topfreq);
 					block_freq.pop();
 				}
+				// format [docid][freq]
 				last_docID.push_back(docID); // first docID of each block 
 				size_of_blocks.push_back(4*NUMOFDOCID*2);	// size of each block
 
+//				int mdsize=((num_block+1)*2+1+1)*4;	// num_block count from 0
 				int mdsize=NUMOFMETADATA*4;
 				int curr_size=curr_chunk.size()*4+mdsize;
 				if(curr_size>CHUNKSIZE)
-				{					
+				{
+					
+//					cout<<" mdsize "<<mdsize<<" "<<curr_size<<" "<<num_block<<endl;
+					/* -----------------add this information------------------------------
+					MetaDataSize TotalBlocks LastDocId1 .. LastDocIdn SizeOfBlock1 .. SizeOfBlock2 DocId1 DocId2 .. DocIdn Freq1 .. Freqn
+	 
+					Taking example from your last answer
+					Actual docIDs:      [ 2  4  7  9 ]  [ 13  15  21  23 ]  [ 28  31  36  43 ] 
+					
+					Then we store like below
+					3 9 23 43 4 4 4 2 2 3 9 4 2 6 23 5 3 5 43 ...(frequencies afterwards)
+					---------------------------------------------------------------------*/
+					
 					// add metadata into chunk or write metadata into file
 					vector<int> meta_data(mdsize/4);	// one block occupies 2
 					meta_data[0]= meta_data.size()-1;		// the first one is the size of MetaData
@@ -106,7 +121,8 @@ int main () {
 					for(int i=0;i<num_block;i++)
 					{
 						meta_data[i+2]=last_docID[i];		// may use offset here at expanse of keeping all the first docs in memory
-						meta_data[i+2+num_block]=size_of_blocks[i];					 
+						meta_data[i+2+num_block]=size_of_blocks[i];		
+//						cout<<" !!! "<<last_docID[i]<<" "<<size_of_blocks[i]<<endl;				 
 					}
 
 					// pad chunk to CHUNKSIZE
@@ -116,10 +132,9 @@ int main () {
 //					cout<<CHUNKSIZE-mdsize<<"   sdfaaaaaaa        "<<chunk_doc.size()<<" "<<chunk_freq.size()<<chunk_doc.back()<<" "<<chunk_freq.back()<<endl;
 					writefile.write((char*)&meta_data[0], meta_data.size()*4);		// write metadata into file
 					writefile.write((char*)&curr_chunk[0], CHUNKSIZE-mdsize); // write chunk into file// fill up to 64kb?
-//					writefile.write((char*)&chunk_freq[0], (CHUNKSIZE-mdsize)/2);
 					num_chunk++;
 					
-					if(num_chunk>3)
+					if(num_chunk>5)
 						break;	
 //					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);					
 //					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);					
@@ -177,22 +192,17 @@ int main()
 	vector<string> url_table;
 	vector<int> url_len;
 	time_t start=time(0);
-//	load_url(url_table, url_len);
+	load_url(url_table, url_len);
 	cout<<"url table costs "<<difftime(time(0), start)<<"s "<<endl;
 	
 	//-----load lexicon--------------
 	unordered_map<string, int> termid;
 	priority_queue<pair<float, string>> result;
 	priority_queue<pair<float, int*>> qf;
-//	int *lxcon=load_lexicon(termid);
 	vector<int> lexicon;
 	load_lexicon(termid, lexicon);
-//	for(int i=10;i<20;i++)
-//	{
-//		cout<<lexicon[i]<<" "<<lxcon[i]<<endl;
-//	}
-	//	ifstream datafile ("test.bin", ios::binary|ios::ate);
-	ifstream datafile ("inverted-index.bin", ios::binary|ios::ate);
+	string path=PATH;
+	ifstream datafile (path+"inverted-index.bin", ios::binary|ios::ate);
 	
 	streampos size2=datafile.tellg();
 //	cout<<"\ndata size="<<size2<<endl;	
@@ -205,21 +215,21 @@ int main()
 //	{
 //		input_query(input);
 		clock_t qt=clock();
-		for(auto in:input)
-		{
-			if(caches.find(in)!=caches.end())
-			{
-				for(auto v:caches[in])
-				{
-					result.push(v);
-				}
-			}
-		}
+//		for(auto in:input)
+//		{
+//			if(caches.find(in)!=caches.end())
+//			{
+//				for(auto v:caches[in])
+//				{
+//					result.push(v);
+//				}
+//			}
+//		}
 		do_query(datafile, lexicon, input, url_table, url_len, termid, result, qf, caches);
 		int i=0;
-		while(!result.empty() && i<11)
+		while(!result.empty() && i<10)
 		{
-			cout<<i++<<". "<<result.top().second<<" "<<result.top().first<<" ";
+			cout<<++i<<". "<<result.top().second<<" "<<result.top().first<<" ";
 			for(int i=0;i<input.size();i++)
 				cout<<qf.top().second[i]<<" ";
 			cout<<endl;
@@ -234,34 +244,15 @@ int main()
 	datafile.close();
 	return 0;
 }
-
 #endif
 #else
-int main () {
-	streampos begin,end;
-	  ifstream myfile ("F:\\data\\lexicon.bin", ios::binary);
-	  begin = myfile.tellg();
-	  myfile.seekg (0, ios::end);
-	  end = myfile.tellg();
-	  myfile.close();
-	  cout << "size is: " << (end-begin) << " bytes.\n";
-	ifstream f("F:\\data\\inverted-index.bin", ios::binary | ios::ate) ;
-	if(f.is_open())
-	{
-		cout<<" opened! "<<endl;
-		streampos size=f.tellg();
-		cout<<size<<endl;
-		f.seekg(0, ios::beg);
-		int *content=new int[4];
-		f.read((char*)content, 16);
-		for(int i=0;i<4;i++)
-			cout<<content[i]<<" ";
-			f.seekg(-4, ios::cur);
-			f.read((char*)content, 4);
-			cout<<content[0];
+int main(){
+	string path=PATH;
+	ifstream f(path+"50_postings");
+	if(f.is_open()){
+		cout<<"opened!"<<endl;
 	}
 }
-
 #endif
 #endif
 

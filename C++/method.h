@@ -13,7 +13,7 @@
 
 using namespace std;
 
-#define OFFSETFREQ rand()%4127
+#define PATH "F:\\data\\"
 #define AVDL 7255
 #define NUMOFDOCID 128
 #define NUMOFBLOCK 2000
