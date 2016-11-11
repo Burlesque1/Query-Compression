@@ -7,24 +7,29 @@
 #include <queue>
 #include <list>
 #include <cmath>
-#include <string.h>
+#include <ctime>
+#include <algorithm>
+
 
 using namespace std;
 
-#define NUMOFDOCID 4
-//#define CHUNKSIZE 65536 
-//#define METADATASIZE 128
-#define CHUNKSIZE 88
-#define METADATASIZE 12
-#define BUFFERSIZE NUMOFDOCID*4
+#define OFFSETFREQ rand()%4127
+#define AVDL 7255
+#define NUMOFDOCID 128
+#define NUMOFBLOCK 2000
+#define NUMOFMETADATA (2+NUMOFBLOCK*2)
+#define CHUNKSIZE (NUMOFMETADATA*4+NUMOFBLOCK*NUMOFDOCID*2*4)
 
+void open_list(string word, unordered_map<string, int> &termid, vector<int> &lxcon, vector<int*> &vmdata, ifstream &datafile);
+void output_lexicon(vector<string> &termid, vector<vector<int>> &lexicon);
 void input_query(vector<string> &words);
-int *load_lexicon(unordered_map<string, int> &termid);
-void do_query(ifstream &datafile, int *lxcon, int offset);
-int read_chunk(string file_name);
-int read_lexicon(string termid, string lexicon);
-int setup_lexicon(vector<int> &lexicon, vector<string> &termID);
-int output_lexicon(vector<string> &termid, vector<vector<int>> &lexicon);
+void load_url(vector<string> &url_table, vector<int> &url_length);
+void load_lexicon(unordered_map<string, int> &termid, vector<int> &lexicon);
+void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vector<string> &url_table, vector<int> &url_len, unordered_map<string, int> &termid, priority_queue<pair<float, string>> &q, priority_queue<pair<float, int*>> &qf, unordered_map<string, vector<pair<float, string>>> &caches);
+bool match_id(ifstream* fp, int *vmdata, vector<int> &fpos, int &freq, int targetid);
+int nextGEQ(int *block, int targetid);
+float compute_bm25(float freq, int count, int length);
 
 int foo(int a);
-
+int read_lexicon(string termid, string lexicon);
+int read_chunk(string file_name);

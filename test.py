@@ -1,12 +1,14 @@
-from method_ import *
+# from method_ import *
 import os
-import warcat.model
+# import warcat.model
 from datetime import datetime
 start=datetime.now()
 docID=0
-f= open("test.bin",'rb') 
-print(f.read())
-os.system('sort b.txt /+1 /C[ASE_SENSITIVE]')
+st="SERdfsER"
+print(st.lower())
+# f= open("test.bin",'rb') 
+# print(f.read())
+# os.system('sort b.txt /+1 /C[ASE_SENSITIVE]')
 # record, is_end = warc.read_record(warc_file_obj)	# skip the first BlockWithPayload			
 # while is_end:
 	# record, is_end = warc.read_record(warc_file_obj)

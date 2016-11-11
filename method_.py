@@ -6,7 +6,7 @@ from datetime import datetime
 def parsing(text_content):
 	term_tf=dict()
 	for m in re.finditer(r"[A-Za-z0-9]+'*[A-Za-z0-9]*", text_content):
-		term, pos = m.group(0), (m.start(), m.end())
+		term, pos = m.group(0).lower(), (m.start(), m.end())
 		# print(term, pos)
 		if term in term_tf:
 			term_tf[term]+=1
