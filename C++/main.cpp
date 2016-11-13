@@ -6,8 +6,6 @@
 #define QUERY 1
 #if !QUERY
 int main () {
-//	ifstream readfile ("beta_data");
-//	ofstream writefile ("test.bin", ios::binary); // | ios::app
 	string path=PATH;
 	ifstream readfile (path+"50_postings");
 	ofstream writefile (path+"inverted-index.bin", ios::binary); // | ios::app
