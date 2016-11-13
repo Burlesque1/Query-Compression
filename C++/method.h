@@ -13,6 +13,7 @@
 
 using namespace std;
 
+#define CONJUNCTIVE 0
 #define PATH "g:\\data\\"
 #define AVDL 7255
 #define NUMOFDOCID 128

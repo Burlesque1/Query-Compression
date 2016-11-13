@@ -131,7 +131,7 @@ int main () {
 					writefile.write((char*)&curr_chunk[0], CHUNKSIZE-mdsize); // write chunk into file// fill up to 64kb?
 					num_chunk++;
 					
-					if(num_chunk>5)
+					if(num_chunk>100)
 						break;	
 //					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);					
 //					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);					
@@ -165,20 +165,6 @@ int main () {
 	writefile.close();
 	
 	output_lexicon(termid, lexicon);
-//	ifstream w ("inverted-index.bin", ios::binary|ios::ate); // | ios::app
-//	streampos size=w.tellg();
-//	cout<<"size="<<size<<endl;
-//	cout<<endl;
-//	int *mem=new int[size/4];
-//	w.seekg(0, ios::beg);
-//	w.read((char*)mem, size);
-//	for(int i=0;i<5163;i++)
-//	{
-//		cout<<mem[i]<<" ";
-//		if((i+1)%5162==0)
-//			cout<<"\n\n\n"<<endl;
-//	}
-//		delete[] mem;
 	return 0;
 }
 
@@ -189,7 +175,7 @@ int main()
 	vector<string> url_table;
 	vector<int> url_len;
 	time_t start=time(0);
-	load_url(url_table, url_len);
+//	load_url(url_table, url_len);
 	cout<<"url table costs "<<difftime(time(0), start)<<"s "<<endl;
 	
 	//-----load lexicon--------------
@@ -206,11 +192,11 @@ int main()
 	cout<<"\nlexicon costs "<<difftime(time(0), start)<<"s "<<endl;
 	unordered_map<string, vector<pair<float, string>>> caches;
 	// input vector
-//	vector<string> input;
-	vector<string> input={"0"};
-//	while(1)
-//	{
-//		input_query(input);
+	vector<string> input;
+//	vector<string> input={"0"};
+	while(1)
+	{
+		input_query(input);
 		clock_t qt=clock();
 //		for(auto in:input)
 //		{
@@ -224,7 +210,7 @@ int main()
 //		}
 		do_query(datafile, lexicon, input, url_table, url_len, termid, result, qf, caches);
 		int i=0;
-		while(!result.empty() && i<10)
+		while(!result.empty() && i<20)
 		{
 			cout<<++i<<". "<<result.top().second<<" "<<result.top().first<<" ";
 			for(int i=0;i<input.size();i++)
@@ -236,7 +222,7 @@ int main()
 		input.clear();
 		result = priority_queue <pair<float, string>>(); 
 		cout<<"This query using "<<float(clock()-qt)/1000<<"s "<<endl;
-//	}
+	}
 
 	datafile.close();
 	return 0;

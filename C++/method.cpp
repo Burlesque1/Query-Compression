@@ -161,12 +161,15 @@ void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vec
 		file_pointer[i].open(path+"inverted-index.bin", ios::binary|ios::ate);
 		open_list(input[i], termid, lxcon, vmdata, block[i], curr_pos[i], file_pointer[i]);
 	}
+	
+#if CONJUNCTIVE
 	// find first query word in lexicon
 	int nth_chunk=curr_pos[min_pos][0], nth_block=curr_pos[min_pos][1], nth_doc=curr_pos[min_pos][2], count=curr_pos[min_pos][3];
 	
 	// decompress
 	//-----------
-	
+
+	cout<<"\n CONJUNCTIVE QUERY \n"<<endl;
 	queue<int> rec_id;		
 	int ini_pos=nth_doc, remain_num=count;
 	while(remain_num>0){
@@ -183,27 +186,27 @@ void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vec
 			int freq=block[min_pos][(ini_pos++)+NUMOFDOCID];
 			freqa[min_pos]=freq;
 			float score=compute_bm25(freq, count, url_len[r]);
-//			float score=compute_bm25(freq, count, 7000);
+			// float score=compute_bm25(freq, count, 7000);
 			for(int i=0;i<input.size();i++)
 			{
 				if(input[i]==min_term)
 				{
 					continue;
 				}
-//	//			if(!match_id(&file_pointer[i], vmdata[i], block[i], freq, curr_pos[i][3], r))
-//	//			{
-//	//				is_match=false;
-//	//				break;
-//	//			}				
+	//			if(!match_id(&file_pointer[i], vmdata[i], block[i], freq, curr_pos[i][3], r))
+	//			{
+	//				is_match=false;
+	//				break;
+	//			}				
 				freqa[i]=freq;
 				score+=compute_bm25(freq, count, url_len[r]);
-//				score+=compute_bm25(freq, count, 7000);
+				// score+=compute_bm25(freq, count, 7000);
 			}
 			if(is_match)
 			{
 				qf.push(make_pair(score, freqa));
 				q.push(make_pair(score, url_table[r]));
-//				q.push(make_pair(score, "dfsdsfsdfsdfds"));
+				// q.push(make_pair(score, "dfsdsfsdfsdfds"));
 //				cout<<"score "<<score<<" "<<freq<<" "<<remain_num<<" "<<r<<endl;
 			} 
 		}
@@ -239,6 +242,74 @@ void do_query(ifstream &datafile, vector<int> &lxcon, vector<string> &input, vec
 		}
 //		cout<<" finish "<<endl;
 	}
+#else
+	cout<<"\n DISCONJUNCTIVE QUERY \n"<<endl;
+
+	for(int i=0;i<input.size();i++){
+		min_pos=i;
+		// find first query word in lexicon
+		int nth_chunk=curr_pos[min_pos][0], nth_block=curr_pos[min_pos][1], nth_doc=curr_pos[min_pos][2], count=curr_pos[min_pos][3];
+		
+		// decompress
+		//-----------
+		
+		queue<int> rec_id;		
+		int ini_pos=nth_doc, remain_num=count;
+		while(remain_num>0){
+			int prev=0;
+			for(int i=ini_pos;i<NUMOFDOCID && remain_num>0;i++, remain_num--){
+				rec_id.push(block[min_pos][i]+prev);
+				prev=rec_id.back();
+			}		
+			while(!rec_id.empty()){
+				int *freqa=new int[input.size()];
+				auto r=rec_id.front();
+				rec_id.pop();
+				bool is_match=true;
+				int freq=block[min_pos][(ini_pos++)+NUMOFDOCID];
+				freqa[min_pos]=freq;
+				// float score=compute_bm25(freq, count, url_len[r]);
+				float score=compute_bm25(freq, count, 7000);
+				for(int i=0;i<input.size();i++)
+				{
+					if(input[i]==min_term)
+					{
+						continue;
+					}
+					freqa[i]=freq;
+					// score+=compute_bm25(freq, count, url_len[r]);
+					score+=compute_bm25(freq, count, 7000);
+				}
+				if(is_match)
+				{
+					qf.push(make_pair(score, freqa));
+					// q.push(make_pair(score, url_table[r]));
+					q.push(make_pair(score, "dfsdsfsdfsdfds"));
+				} 
+			}
+			ini_pos=0;
+			if(remain_num<=0)		// check if cross block
+				break;
+			if(nth_block>=NUMOFBLOCK){		// new chunk
+				int new_msize=0;		// renew metadata
+				file_pointer[min_pos].read((char*)&new_msize, 4);
+				cout<<" ??? "<<new_msize<<endl;
+				nth_block=0;
+				file_pointer[min_pos].read((char*)vmdata[min_pos], new_msize*4);
+				int num_blocks=vmdata[min_pos][0];
+				file_pointer[min_pos].read((char*)block[min_pos], vmdata[min_pos][1+num_blocks+(nth_block++)]);			
+				curr_pos[min_pos][1]=nth_block;
+				curr_pos[min_pos][0]++;
+			} 
+			else {			
+				int num_blocks=vmdata[min_pos][0];
+				file_pointer[min_pos].read((char*)block[min_pos], vmdata[min_pos][1+num_blocks+(nth_block++)]);
+				curr_pos[min_pos][1]=nth_block;
+			
+			}
+		}
+	}
+#endif
 }
 
 bool search_in_block(int *block, int start_pos, int &freq, int &count, int targetid)
@@ -295,7 +366,6 @@ void input_query(vector<string> &words)
 	cout<<"\n\nplease enter your query words:\n"<<endl;
 	string query;
 	getline(cin, query, '\n');
-	// cout<<query<<endl;
 	stringstream ss(query);
 	string keyword;
 	while(getline(ss, keyword, ' '))
@@ -305,12 +375,9 @@ void input_query(vector<string> &words)
 			cout<<"please re-enter!"<<endl;
 			break;
 		}
-		words.push_back((keyword));
+		if(find(words.begin(), words.end(), keyword)==words.end())
+			words.push_back((keyword));
 	}
-	// cout<<"\nThe query words are:\n";
-	// for(auto w:words)
-		// cout<<w<<" ";
-	// cout<<endl;
 }
 
 //--------------------------------------------------------------------------------------------------------------
