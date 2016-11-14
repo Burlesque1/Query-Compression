@@ -1,0 +1,51 @@
+cout<<"\n DISJUNCTIVE QUERY \n"<<endl;
+
+	for(int i=0;i<input.size();i++){
+		min_pos=i;
+		// find first query word in lexicon
+		int nth_chunk=curr_pos[min_pos][0], nth_block=curr_pos[min_pos][1], nth_doc=curr_pos[min_pos][2], count=curr_pos[min_pos][3];
+		
+		// decompress
+		//-----------
+		
+		queue<int> rec_id;		
+		int ini_pos=nth_doc, remain_num=count;
+		while(remain_num>0){
+			int prev=0;
+			for(int i=ini_pos;i<NUMOFDOCID && remain_num>0;i++, remain_num--){
+				rec_id.push(block[min_pos][i]+prev);
+				prev=rec_id.back();
+			}		
+			while(!rec_id.empty()){
+				int *freqa=new int[input.size()];
+				auto r=rec_id.front();
+				rec_id.pop();
+				int freq=block[min_pos][(ini_pos++)+NUMOFDOCID];
+				freqa[0]=freq;
+				freqa[1]=min_pos;
+				// float score=compute_bm25(freq, count, url_len[r]);
+				// q.push(make_pair(score, url_table[r]));
+				float score=compute_bm25(freq, count, 7000);
+				q.push(make_pair(score, "dfsdsfsdfsdfds"));
+				qf.push(make_pair(score, freqa));
+			}
+			ini_pos=0;
+			if(remain_num<=0)		// check if cross block
+				break;
+			if(nth_block>=NUMOFBLOCK){		// new chunk
+				int new_msize=0;		// renew metadata
+				file_pointer[min_pos].read((char*)&new_msize, 4);
+				nth_block=0;
+				file_pointer[min_pos].read((char*)vmdata[min_pos], new_msize*4);
+				int num_blocks=vmdata[min_pos][0];
+				file_pointer[min_pos].read((char*)block[min_pos], vmdata[min_pos][1+num_blocks+(nth_block++)]);			
+				curr_pos[min_pos][1]=nth_block;
+				curr_pos[min_pos][0]++;
+			} 
+			else {			
+				int num_blocks=vmdata[min_pos][0];
+				file_pointer[min_pos].read((char*)block[min_pos], vmdata[min_pos][1+num_blocks+(nth_block++)]);
+				curr_pos[min_pos][1]=nth_block;
+			}
+		}
+	}
