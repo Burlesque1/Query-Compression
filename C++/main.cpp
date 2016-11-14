@@ -131,7 +131,7 @@ int main () {
 					writefile.write((char*)&curr_chunk[0], CHUNKSIZE-mdsize); // write chunk into file// fill up to 64kb?
 					num_chunk++;
 					
-					if(num_chunk>50)
+					if(num_chunk>100)
 						break;	
 //					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);					
 //					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);					
@@ -149,7 +149,7 @@ int main () {
 						lexicon[c.second][0]=num_chunk;
 						lexicon[c.second][1]=num_block;
 					}
-					if(num_chunk%10==0)
+					if(num_chunk%1==0)
 						cout<<num_chunk<<" chunks "<<difftime(time(0), start)<<"s "<<endl;
 				}
 				curr_block.clear();
@@ -192,11 +192,11 @@ int main()
 	cout<<"\nlexicon costs "<<difftime(time(0), start)<<"s "<<endl;
 	unordered_map<string, vector<pair<float, string>>> caches;
 	// input vector
-//	vector<string> input;
-	vector<string> input={"0", "1"};
-//	while(1)
-//	{
-//		input_query(input);
+	vector<string> input;
+//	vector<string> input={"0"};
+	while(1)
+	{
+		input_query(input);
 		clock_t qt=clock();
 //		for(auto in:input)
 //		{
@@ -208,19 +208,13 @@ int main()
 //				}
 //			}
 //		}
-		do_query(lexicon, input, url_table, url_len, termid, result, qf, caches);
+		do_query(datafile, lexicon, input, url_table, url_len, termid, result, qf, caches);
 		int i=0;
-		if(result.empty())
-			cout<<" no result found!"<<endl;
 		while(!result.empty() && i<20)
 		{
 			cout<<++i<<". "<<result.top().second<<" "<<result.top().first<<" ";
-#if CONJUNCTIVE
 			for(int i=0;i<input.size();i++)
 				cout<<qf.top().second[i]<<" ";
-#else
-			cout<<input[qf.top().second[1]]<<" "<<qf.top().second[0];
-#endif
 			cout<<endl;
 			qf.pop();
 			result.pop();
@@ -228,7 +222,7 @@ int main()
 		input.clear();
 		result = priority_queue <pair<float, string>>(); 
 		cout<<"This query using "<<float(clock()-qt)/1000<<"s "<<endl;
-//	}
+	}
 
 	datafile.close();
 	return 0;
@@ -238,13 +232,13 @@ int main()
 int main(){
 	
 	clock_t qt=clock();
+	
+	for(long i=0;i<2000000000;i++)
+		;
+	float a=float(clock()-qt)/1000;
+	cout<<"20000000 using "<<float(clock()-qt)/1000<<"s "<<a<<endl;
 	string path=PATH;
-	ifstream f(path+"inverted-index.bin", ios::app);
-	ifstream ff(path+"inverted-index.bin", ios::ate);
-//	f.seekg(10, ios::beg);
-//	ff.seekg(1000, ios::beg);
-	streampos s1=f.tellg(), s2=ff.tellg();
-	cout<<s1<<" "<<s2<<endl;
+	ifstream f(path+"50_postings");
 	if(f.is_open()){
 		cout<<"opened!"<<endl;
 	}
