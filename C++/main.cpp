@@ -175,28 +175,28 @@ int main()
 	vector<string> url_table;
 	vector<int> url_len;
 	time_t start=time(0);
-//	load_url(url_table, url_len);
+	load_url(url_table, url_len);
 	cout<<"url table costs "<<difftime(time(0), start)<<"s "<<endl;
 	
 	//-----load lexicon--------------
 	unordered_map<string, int> termid;
 	priority_queue<pair<float, string>> result;
 	priority_queue<pair<float, int*>> qf;
-	vector<int> lexicon;
+	vector<int> lexicon(23327592*4);
 	load_lexicon(termid, lexicon);
 	string path=PATH;
 	ifstream datafile (path+"inverted-index.bin", ios::binary|ios::ate);
-	
+
 	streampos size2=datafile.tellg();
-//	cout<<"\ndata size="<<size2<<endl;	
+	cout<<"\ndata size="<<size2<<endl;	
 	cout<<"\nlexicon costs "<<difftime(time(0), start)<<"s "<<endl;
 	unordered_map<string, vector<pair<float, string>>> caches;
 	// input vector
-//	vector<string> input;
-	vector<string> input={"0", "1"};
-//	while(1)
-//	{
-//		input_query(input);
+	vector<string> input;
+//	vector<string> input={"00", "1", "0"};
+	while(1)
+	{
+		input_query(input);
 		clock_t qt=clock();
 //		for(auto in:input)
 //		{
@@ -219,7 +219,8 @@ int main()
 			for(int i=0;i<input.size();i++)
 				cout<<qf.top().second[i]<<" ";
 #else
-			cout<<input[qf.top().second[1]]<<" "<<qf.top().second[0];
+			for(int i=0;i<input.size();i++)
+				cout<<qf.top().second[i]<<" ";
 #endif
 			cout<<endl;
 			qf.pop();
@@ -228,7 +229,7 @@ int main()
 		input.clear();
 		result = priority_queue <pair<float, string>>(); 
 		cout<<"This query using "<<float(clock()-qt)/1000<<"s "<<endl;
-//	}
+	}
 
 	datafile.close();
 	return 0;
@@ -239,12 +240,18 @@ int main(){
 	
 	clock_t qt=clock();
 	string path=PATH;
-	ifstream f(path+"inverted-index.bin", ios::app);
+	ifstream f(path+"inverted-index.bin");
 	ifstream ff(path+"inverted-index.bin", ios::ate);
 //	f.seekg(10, ios::beg);
 //	ff.seekg(1000, ios::beg);
+	char *sa=new char[10];
 	streampos s1=f.tellg(), s2=ff.tellg();
 	cout<<s1<<" "<<s2<<endl;
+	ff.read(sa,1);
+	cout<<ff.tellg()<<" "<<ff.eof()<<" "<<endl;
+	s1=f.tellg(), s2=ff.tellg();
+	cout<<s1<<" "<<s2<<endl;
+	ff.seekg(-10000, ios::cur);
 	if(f.is_open()){
 		cout<<"opened!"<<endl;
 	}
