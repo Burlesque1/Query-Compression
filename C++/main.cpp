@@ -11,7 +11,7 @@ int main () {
 	ofstream writefile (path+"inverted-index.bin", ios::binary); // | ios::app
 	
 	string line, word="";
-	
+	PForDelta p1;
 	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=-1, freq=0, count=0, offset=0;
 	vector<int> curr_chunk, chunk_doc, chunk_freq, last_docID, size_of_blocks;
 	queue<int> block_doc, block_freq;
@@ -63,16 +63,12 @@ int main () {
 				count++;
 				if(block_doc.empty())
 				{
-//					chunk_doc.push_back(docID);
 					block_doc.push(docID);
-//					cout<<docID<<" "<<chunk_doc.size()<<endl;
 				}
 				else
 				{
-//					chunk_doc.push_back(docID-last_one);
 					block_doc.push(docID-last_one);
-				}
-//				chunk_freq.push_back(freq);			
+				}		
 				block_freq.push(freq);
 				last_one=docID;			// record doc num in current block
 			}
@@ -118,13 +114,12 @@ int main () {
 					for(int i=0;i<num_block;i++)
 					{
 						meta_data[i+2]=last_docID[i];		// may use offset here at expanse of keeping all the first docs in memory
-						meta_data[i+2+num_block]=size_of_blocks[i];		
-//						cout<<" !!! "<<last_docID[i]<<" "<<size_of_blocks[i]<<endl;				 
+						meta_data[i+2+num_block]=size_of_blocks[i];				 
 					}
 
 					// pad chunk to CHUNKSIZE
-												
 					//-----------------------
+					// p1.encode(&curr_chunk[0], &curr_chunk[0])
 					
 //					cout<<CHUNKSIZE-mdsize<<"   sdfaaaaaaa        "<<chunk_doc.size()<<" "<<chunk_freq.size()<<chunk_doc.back()<<" "<<chunk_freq.back()<<endl;
 					writefile.write((char*)&meta_data[0], meta_data.size()*4);		// write metadata into file
@@ -132,9 +127,7 @@ int main () {
 					num_chunk++;
 					
 					if(num_chunk>50)
-						break;	
-//					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);					
-//					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);					
+						break;						
 					curr_chunk.erase(curr_chunk.begin(), curr_chunk.end()-2*NUMOFDOCID);
 					last_docID.clear();		// better using queues
 					size_of_blocks.clear();

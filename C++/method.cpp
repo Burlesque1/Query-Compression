@@ -8,8 +8,7 @@ void output_lexicon(vector<string> &termid, vector<vector<int>> &lexicon){
 	ofstream lexicon_ft(path+"lexicon");
 	for(int i=0;i<termid.size();i++)
 	{
-		termid_f<<termid[i]<<endl; 
-		// cout<<"  "<<termid[i]<<endl;
+		termid_f<<termid[i]<<endl;
 	}
 	for(auto l:lexicon)
 	{
@@ -30,7 +29,6 @@ void load_lexicon(unordered_map<string, int> &termid, vector<int> &lexicon)
 	if(readfile.is_open() && file_t.is_open())
 	{
 		cout<<"\nlexicon is loading..."<<endl;
-//		cout<<"termid file opened"<<endl;
 		string word, line;
 		int num=0;
 		while(getline(readfile, word))
@@ -92,7 +90,6 @@ float compute_bm25(float freq, int count, int length)
 	int N=5151893;
 	float K=1.2*(0.25+0.75*length/AVDL);
 	float bm25=log((N-count+0.5)/(count+0.5))*(1.2+1)*freq/(K+freq);
-	// cout<<"bm25 "<<bm25<<endl;
 	return bm25;
 }
 
@@ -119,10 +116,6 @@ void open_list(string word, unordered_map<string, int> &termid, vector<int> &lxc
 	datafile.seekg (size_sum, ios::cur);
 	datafile.read((char*)block, mdata[1+num_blocks+(nth_block++)]);
 	curr_pos[1]=nth_block;
-	// for(int i=0;i<2;i++)
-		// cout<<block[i+nth_doc]<<" ";
-	// cout<<endl;	cout<<endl;	cout<<endl;	
-	// exit(0);
 }
 
 void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_table, vector<int> &url_len, unordered_map<string, int> &termid, priority_queue<pair<float, string>> &q, priority_queue<pair<float, int*>> &qf, unordered_map<string, vector<pair<float, string>>> &caches)
@@ -150,7 +143,6 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 	}
 	vector<int*> vmdata;
 	vector<vector<int>> curr_pos(input.size());
-	// vector<int*> block(input.size());
 	vector<vector<int>> block(input.size(), vector<int>(256, 0));
 	vector<ifstream*> file_pointer(input.size());
 	string path=PATH;
@@ -160,16 +152,10 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 		file_pointer[i]->open(path+"inverted-index.bin", ios::binary|ios::ate);
 		open_list(input[i], termid, lxcon, vmdata, &block[i][0], curr_pos[i], *file_pointer[i]);
 	}
-	// cout<<vmdata[0][1]<<" "<<vmdata[1][1]<<" "<<vmdata[2][1]<<endl;
-	// cout<<block[0][0+curr_pos[0][2]]<<" "<<block[1][curr_pos[1][2]]<<" "<<block[2][curr_pos[2][2]]<<endl;//""
-	// exit(0);
 #if CONJUNCTIVE
 	// find first query word in lexicon
 	int nth_chunk=curr_pos[min_pos][0], nth_doc=curr_pos[min_pos][2], count=curr_pos[min_pos][3];
-	
-	// decompress
-	//-----------
-
+	PForDelta p1;
 	cout<<"\n CONJUNCTIVE QUERY \n"<<endl;
 	queue<int> rec_id;		
 	int ini_pos=nth_doc, remain_num=count;
@@ -187,7 +173,6 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 			int freq=block[min_pos][(ini_pos++)+NUMOFDOCID];
 			freqa[min_pos]=freq;
 			float score=compute_bm25(freq, count, url_len[r]);
-//			float score=compute_bm25(freq, count, 7000);
 			for(int i=0;i<input.size();i++)
 			{
 				if(i==min_pos)
@@ -201,13 +186,11 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 				}				
 				freqa[i]=freq;
 				score+=compute_bm25(freq, curr_pos[i][3], url_len[r]);
-//				 score+=compute_bm25(freq, curr_pos[i][3], 7000);
 			}
 			if(is_match)
 			{
 				qf.push(make_pair(score, freqa));
 				q.push(make_pair(score, url_table[r]));
-//				q.push(make_pair(score, "dfsdsfsdfsdfds"));
 			}
 		}
 		ini_pos=0;
@@ -261,8 +244,7 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 				
 				int freq=block[min_pos][(ini_pos++)+NUMOFDOCID];
 				freqa[min_pos]=freq;
-				float score=compute_bm25(freq, count, url_len[r]);
-//				float score=compute_bm25(freq, count, 7000);				
+				float score=compute_bm25(freq, count, url_len[r]);		
 				for(int i=0;i<input.size();i++)
 				{
 					if(i==min_pos || searched.find(i)!=searched.end())
@@ -274,14 +256,11 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 						searched.insert(r);
 						freqa[i]=freq;
 						score+=compute_bm25(freq, curr_pos[i][3], url_len[r]);
-//						score+=compute_bm25(freq, curr_pos[i][3], 7000);
-						cout<<" what the "<<score<<endl;
 					}
 					else
 						freqa[i]=0;
 				}
-				  q.push(make_pair(score, url_table[r]));
-//				q.push(make_pair(score, "dfsdsfsdfsdfds"));
+				q.push(make_pair(score, url_table[r]));
 				qf.push(make_pair(score, freqa));
 			}
 			
@@ -292,7 +271,7 @@ void do_query(vector<int> &lxcon, vector<string> &input, vector<string> &url_tab
 				int msize=0;		// renew metadata
 				file_pointer[min_pos]->read((char*)&msize, 4);
 				if(msize!=4001){
-					cerr<<msize<<" error "<<file_pointer[min_pos]->tellg()<<" "<<curr_pos[min_pos][0]<<" "<<curr_pos[min_pos][1]<<endl;
+					cerr<<" error "<<msize<<" "<<file_pointer[min_pos]->tellg()<<" "<<curr_pos[min_pos][0]<<" "<<curr_pos[min_pos][1]<<endl;
 					exit(0);
 				}
 				file_pointer[min_pos]->read((char*)vmdata[min_pos], msize*4);
@@ -373,7 +352,8 @@ bool search_in_block(int *block, int &start_pos, int &freq, int &count, int targ
 			return true;
 		}
 	}
-	return false;
+	freq=block[start_pos+NUMOFDOCID-1];
+	return true;
 }
 
 
@@ -394,12 +374,4 @@ void input_query(vector<string> &words)
 		if(find(words.begin(), words.end(), keyword)==words.end())
 			words.push_back((keyword));
 	}
-}
-
-//--------------------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------
-
-int foo(int a)
-{
-	cout<<"dfdf "<<a<<endl;
 }
