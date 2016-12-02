@@ -6,14 +6,12 @@
 #define QUERY 1
 #if !QUERY
 int main () {
-//	ifstream readfile ("beta_data");
-//	ofstream writefile ("test.bin", ios::binary); // | ios::app
 	string path=PATH;
 	ifstream readfile (path+"50_postings");
 	ofstream writefile (path+"inverted-index.bin", ios::binary); // | ios::app
 	
 	string line, word="";
-	
+	PForDelta p1;
 	int ID=0, pos_offset=0, last_pos=0, docID=0, last_one=-1, freq=0, count=0, offset=0;
 	vector<int> curr_chunk, chunk_doc, chunk_freq, last_docID, size_of_blocks;
 	queue<int> block_doc, block_freq;
@@ -65,16 +63,12 @@ int main () {
 				count++;
 				if(block_doc.empty())
 				{
-//					chunk_doc.push_back(docID);
 					block_doc.push(docID);
-//					cout<<docID<<" "<<chunk_doc.size()<<endl;
 				}
 				else
 				{
-//					chunk_doc.push_back(docID-last_one);
 					block_doc.push(docID-last_one);
-				}
-//				chunk_freq.push_back(freq);			
+				}		
 				block_freq.push(freq);
 				last_one=docID;			// record doc num in current block
 			}
@@ -120,23 +114,20 @@ int main () {
 					for(int i=0;i<num_block;i++)
 					{
 						meta_data[i+2]=last_docID[i];		// may use offset here at expanse of keeping all the first docs in memory
-						meta_data[i+2+num_block]=size_of_blocks[i];		
-//						cout<<" !!! "<<last_docID[i]<<" "<<size_of_blocks[i]<<endl;				 
+						meta_data[i+2+num_block]=size_of_blocks[i];				 
 					}
 
 					// pad chunk to CHUNKSIZE
-												
 					//-----------------------
+					// p1.encode(&curr_chunk[0], &curr_chunk[0])
 					
 //					cout<<CHUNKSIZE-mdsize<<"   sdfaaaaaaa        "<<chunk_doc.size()<<" "<<chunk_freq.size()<<chunk_doc.back()<<" "<<chunk_freq.back()<<endl;
 					writefile.write((char*)&meta_data[0], meta_data.size()*4);		// write metadata into file
 					writefile.write((char*)&curr_chunk[0], CHUNKSIZE-mdsize); // write chunk into file// fill up to 64kb?
 					num_chunk++;
 					
-					if(num_chunk>5)
-						break;	
-//					chunk_doc.erase(chunk_doc.begin(), chunk_doc.end()-NUMOFDOCID);					
-//					chunk_freq.erase(chunk_freq.begin(), chunk_freq.end()-NUMOFDOCID);					
+					if(num_chunk>50)
+						break;						
 					curr_chunk.erase(curr_chunk.begin(), curr_chunk.end()-2*NUMOFDOCID);
 					last_docID.clear();		// better using queues
 					size_of_blocks.clear();
@@ -151,7 +142,7 @@ int main () {
 						lexicon[c.second][0]=num_chunk;
 						lexicon[c.second][1]=num_block;
 					}
-					if(num_chunk%1==0)
+					if(num_chunk%10==0)
 						cout<<num_chunk<<" chunks "<<difftime(time(0), start)<<"s "<<endl;
 				}
 				curr_block.clear();
@@ -167,20 +158,6 @@ int main () {
 	writefile.close();
 	
 	output_lexicon(termid, lexicon);
-//	ifstream w ("inverted-index.bin", ios::binary|ios::ate); // | ios::app
-//	streampos size=w.tellg();
-//	cout<<"size="<<size<<endl;
-//	cout<<endl;
-//	int *mem=new int[size/4];
-//	w.seekg(0, ios::beg);
-//	w.read((char*)mem, size);
-//	for(int i=0;i<5163;i++)
-//	{
-//		cout<<mem[i]<<" ";
-//		if((i+1)%5162==0)
-//			cout<<"\n\n\n"<<endl;
-//	}
-//		delete[] mem;
 	return 0;
 }
 
@@ -198,21 +175,21 @@ int main()
 	unordered_map<string, int> termid;
 	priority_queue<pair<float, string>> result;
 	priority_queue<pair<float, int*>> qf;
-	vector<int> lexicon;
+	vector<int> lexicon(23327592*4);
 	load_lexicon(termid, lexicon);
 	string path=PATH;
 	ifstream datafile (path+"inverted-index.bin", ios::binary|ios::ate);
-	
+
 	streampos size2=datafile.tellg();
-//	cout<<"\ndata size="<<size2<<endl;	
+	cout<<"\ndata size="<<size2<<endl;	
 	cout<<"\nlexicon costs "<<difftime(time(0), start)<<"s "<<endl;
 	unordered_map<string, vector<pair<float, string>>> caches;
 	// input vector
-//	vector<string> input;
-	vector<string> input={"0"};
-//	while(1)
-//	{
-//		input_query(input);
+	vector<string> input;
+//	vector<string> input={"00", "1", "0"};
+	while(1)
+	{
+		input_query(input);
 		clock_t qt=clock();
 //		for(auto in:input)
 //		{
@@ -224,13 +201,20 @@ int main()
 //				}
 //			}
 //		}
-		do_query(datafile, lexicon, input, url_table, url_len, termid, result, qf, caches);
+		do_query(lexicon, input, url_table, url_len, termid, result, qf, caches);
 		int i=0;
-		while(!result.empty() && i<10)
+		if(result.empty())
+			cout<<" no result found!"<<endl;
+		while(!result.empty() && i<20)
 		{
 			cout<<++i<<". "<<result.top().second<<" "<<result.top().first<<" ";
+#if CONJUNCTIVE
 			for(int i=0;i<input.size();i++)
 				cout<<qf.top().second[i]<<" ";
+#else
+			for(int i=0;i<input.size();i++)
+				cout<<qf.top().second[i]<<" ";
+#endif
 			cout<<endl;
 			qf.pop();
 			result.pop();
@@ -238,7 +222,7 @@ int main()
 		input.clear();
 		result = priority_queue <pair<float, string>>(); 
 		cout<<"This query using "<<float(clock()-qt)/1000<<"s "<<endl;
-//	}
+	}
 
 	datafile.close();
 	return 0;
@@ -248,13 +232,19 @@ int main()
 int main(){
 	
 	clock_t qt=clock();
-	
-	for(long i=0;i<2000000000;i++)
-		;
-	float a=float(clock()-qt)/1000;
-	cout<<"20000000 using "<<float(clock()-qt)/1000<<"s "<<a<<endl;
 	string path=PATH;
-	ifstream f(path+"50_postings");
+	ifstream f(path+"inverted-index.bin");
+	ifstream ff(path+"inverted-index.bin", ios::ate);
+//	f.seekg(10, ios::beg);
+//	ff.seekg(1000, ios::beg);
+	char *sa=new char[10];
+	streampos s1=f.tellg(), s2=ff.tellg();
+	cout<<s1<<" "<<s2<<endl;
+	ff.read(sa,1);
+	cout<<ff.tellg()<<" "<<ff.eof()<<" "<<endl;
+	s1=f.tellg(), s2=ff.tellg();
+	cout<<s1<<" "<<s2<<endl;
+	ff.seekg(-10000, ios::cur);
 	if(f.is_open()){
 		cout<<"opened!"<<endl;
 	}
